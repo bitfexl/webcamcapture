@@ -1,5 +1,5 @@
 webcamcaptureconfig.json
-./webcam-save/
+webcam-save/
 
 #Maven
 target/
