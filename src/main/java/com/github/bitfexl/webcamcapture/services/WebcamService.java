@@ -5,7 +5,6 @@ import com.github.bitfexl.webcamcapture.config.WebcamSource;
 import com.github.bitfexl.webcamcapture.io.http.HTTPClient;
 import com.github.bitfexl.webcamcapture.respsitories.WebcamRepository;
 import com.github.bitfexl.webcamcapture.util.Hashing;
-import io.quarkus.logging.Log;
 import io.quarkus.runtime.Startup;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -33,7 +32,6 @@ public class WebcamService {
     void injectConfig(ApplicationConfig config) {
         for (WebcamSource source : config.config().webcams()) {
             jobSchedulerService.addJob(source.updateInterval(), () -> {
-                Log.info("Capturing: " + source.name());
                 updateWebcam(source);
             });
         }
