@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Webcam Capture</title>
+        <style>
+            #image {
+                width: 800px;
+                height: auto;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Webcam Capture</h1>
+        <br />
+        <h2>Available Webcams</h2>
+        <ul id="list"></ul>
+        <br />
+        <h2 id="heading">Select Webcam to view</h2>
+        <br />
+        <img id="image" src="" alt="Webcam Image" />
+        <br />
+        <i id="date"></i>
+        <br />
+        <br />
+        <div>
+            <button onclick="updateDate(-60)">- 1 hour</button>
+            <button onclick="updateDate(-10)">- 10 min</button>
+            <button onclick="updateDate(+10)">+ 10 min</button>
+            <button onclick="updateDate(+60)">+ 1 hour</button>
+        </div>
+        <script>
+            let currentWebcam = null;
+            let currentDate = new Date();
+
+            function updateDate(minutes) {
+                currentDate.setMinutes(currentDate.getMinutes() + minutes);
+                updateImage(currentWebcam, currentDate.toISOString());
+            }
+
+            function setWebcam(webcam) {
+                currentWebcam = webcam;
+                document.getElementById("heading").innerText = webcam;
+                updateImage(webcam, currentDate.toISOString());
+            }
+
+            async function updateImage(webcam, timestamp) {
+                const imageMeta = await (await fetch("/webcam/" + webcam + "/" + timestamp)).json();
+                console.log("Webcam image:", imageMeta);
+                document.getElementById("image").src = imageMeta.url;
+                document.getElementById("date").innerText =
+                    new Date(imageMeta.timestamp).toLocaleString(undefined, {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                        hour12: false,
+                    }) +
+                    " (requested:" +
+                    currentDate.toLocaleString(undefined, {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                        hour12: false,
+                    }) +
+                    " )";
+            }
+
+            (async () => {
+                const index = await (await fetch("/index")).json();
+                console.log("Index:", index);
+                for (const webcam of index.webcams) {
+                    document.getElementById("list").innerHTML += `
+                    <li>
+                        <a href="#${webcam.name}">${webcam.name}</a>
+                    </li>
+                `;
+                }
+            })();
+
+            (() => {
+                const webcam = decodeURIComponent(location.hash.substring(1));
+                if (webcam != "") {
+                    setWebcam(webcam);
+                }
+                window.addEventListener("hashchange", () => {
+                    setWebcam(decodeURIComponent(location.hash.substring(1)));
+                });
+            })();
+        </script>
+    </body>
+</html>
