@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Startup
 @ApplicationScoped
@@ -74,7 +75,8 @@ public class WebcamService {
      * @param webcamSource The source to update.
      */
     public void updateWebcam(WebcamSource webcamSource) {
-        final byte[] bytes = httpClient.getBytes(webcamSource.url(), Map.of());
+        final String url = webcamSource.addRandom() ? webcamSource.url() + "?" + UUID.randomUUID() : webcamSource.url();
+        final byte[] bytes = httpClient.getBytes(url, Map.of("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.3"));
         final String hash = hashing.md5(bytes);
         webcamRepository.writeImage(webcamSource.name(), getExtension(webcamSource.url()), Instant.now(), hash, bytes);
 
