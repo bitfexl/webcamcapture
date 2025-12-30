@@ -97,7 +97,7 @@ public class WebcamRepository {
                 final String[] rawImages = fileReader.readFileUtf8(indexFile).split("\n");
                 for (int i = 1; i < rawImages.length; i++) {
                     final String[] parts = rawImages[i].split(",");
-                    images.add(new WebcamImage(parts[2], Instant.parse(parts[1]), webcamsCacheDir.resolve(parts[0])));
+                    images.add(new WebcamImage(parts[2], Instant.parse(parts[1]), sourceCacheDir.resolve(parts[0])));
                 }
             } else {
                 fileWriter.writeLine(indexFile, CACHE_CSV_HEADER);
