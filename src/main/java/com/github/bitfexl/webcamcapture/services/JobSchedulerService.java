@@ -1,5 +1,6 @@
 package com.github.bitfexl.webcamcapture.services;
 
+import com.github.bitfexl.webcamcapture.util.DurationParser;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -30,18 +31,7 @@ public class JobSchedulerService {
      * @param job The job to schedule.
      */
     public void addJob(String interval, Runnable job) {
-        double number = Double.parseDouble(interval.substring(0, interval.length() - 1));
-        number *= 1000;
-
-        final char unit = interval.charAt(interval.length() - 1);
-        if (unit == 'm' || unit == 'h') {
-            number *= 60;
-        }
-        if (unit == 'h') {
-            number *= 60;
-        }
-
-        addJob((long) number, job);
+        addJob(DurationParser.parseDuration(interval), job);
     }
 
     /**

@@ -5,6 +5,7 @@ public record WebcamSource(
         String url,
         boolean addRandom,
         String updateInterval,
-        Integer maxCaptures
+        Integer maxCaptures,
+        String minSaveInterval
 ) {
 }

@@ -6,6 +6,8 @@ import java.net.URI;
 import java.util.HashSet;
 import java.util.Set;
 
+import static com.github.bitfexl.webcamcapture.util.DurationParser.DURATION_PATTERN;
+
 @ApplicationScoped
 public class ConfigValidator {
     public boolean validate(WebcamCaptureConfig config) {
@@ -52,12 +54,17 @@ public class ConfigValidator {
         }
 
         // check update interval
-        if (!source.updateInterval().matches("[1-9]\\d*(\\.\\d+)?[smh]")) {
+        if (!source.updateInterval().matches(DURATION_PATTERN)) {
             return false;
         }
 
         // check max captures
         if (source.maxCaptures() != null && source.maxCaptures() < 1) {
+            return false;
+        }
+
+        // check save interval
+        if (source.minSaveInterval() != null && !source.minSaveInterval().matches(DURATION_PATTERN)) {
             return false;
         }
 

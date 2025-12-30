@@ -5,6 +5,7 @@ import com.github.bitfexl.webcamcapture.config.WebcamSource;
 import com.github.bitfexl.webcamcapture.io.http.HTTPClient;
 import com.github.bitfexl.webcamcapture.respsitories.WebcamRepository;
 import com.github.bitfexl.webcamcapture.respsitories.webcamrepository.WebcamImage;
+import com.github.bitfexl.webcamcapture.util.DurationParser;
 import com.github.bitfexl.webcamcapture.util.Hashing;
 import io.quarkus.runtime.Startup;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -35,9 +36,17 @@ public class WebcamService {
     @Inject
     void injectConfig(ApplicationConfig config) {
         for (WebcamSource source : config.config().webcams()) {
+            // schedule updates
             jobSchedulerService.addJob(source.updateInterval(), () -> {
                 updateWebcam(source);
             });
+
+            // schedule cleanups
+            if (source.minSaveInterval() != null) {
+                jobSchedulerService.addJob(source.minSaveInterval(), () -> {
+                    cleanupWebcamImages(source);
+                });
+            }
         }
     }
 
@@ -60,6 +69,10 @@ public class WebcamService {
         return findClosest(images, nearTimestamp);
     }
 
+    /**
+     * Update the webcam (save the image). Respects max captures and deletes images if necessary.
+     * @param webcamSource The source to update.
+     */
     public void updateWebcam(WebcamSource webcamSource) {
         final byte[] bytes = httpClient.getBytes(webcamSource.url(), Map.of());
         final String hash = hashing.md5(bytes);
@@ -70,6 +83,38 @@ public class WebcamService {
             final List<WebcamImage> images = webcamRepository.getImages(webcamSource.name());
             for (int i = 0; images.size() - i > webcamSource.maxCaptures(); i++) {
                 webcamRepository.removeImage(webcamSource.name(), images.get(i));
+            }
+        }
+    }
+
+    /**
+     * Save cleanups: after the min save interval, from the beginning,
+     * delete all images within this minimum interval,
+     * start again from the next saved image, delete all images in the intervals but the very last (most recent).
+     * @param webcamSource The source to clean up for.
+     */
+    public void cleanupWebcamImages(WebcamSource webcamSource) {
+        if (webcamSource.minSaveInterval() == null) {
+            return;
+        }
+
+        final List<WebcamImage> images = webcamRepository.getImages(webcamSource.name());
+
+        // first and last are always kept
+        if (images.size() < 3) {
+            return;
+        }
+
+        final long ms = DurationParser.parseDuration(webcamSource.minSaveInterval());
+
+        Instant last = images.getFirst().timestamp();
+
+        for (int i = 1; i < images.size() - 1; i++) {
+            final WebcamImage image = images.get(i);
+            if (Duration.between(last, image.timestamp()).toMillis() < ms) {
+                webcamRepository.removeImage(webcamSource.name(), image);
+            } else {
+                last = image.timestamp();
             }
         }
     }
