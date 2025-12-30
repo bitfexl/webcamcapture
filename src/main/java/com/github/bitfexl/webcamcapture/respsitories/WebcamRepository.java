@@ -12,6 +12,8 @@ import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -21,6 +23,9 @@ import java.util.*;
 @ApplicationScoped
 public class WebcamRepository {
     private static final String CACHE_CSV_HEADER = "name,timestamp,hash";
+    private static final String IMAGES_INDEX = "index.csv";
+    private static final String REMOVED_INDEX = "removed.csv";
+
     @Inject
     ImageResource imageResource;
 
@@ -85,26 +90,32 @@ public class WebcamRepository {
             final WebcamCacheIndex.WebcamIndexEntry indexEntry = indexEntryMap.get(source.name());
 
             final Path sourceCacheDir = webcamsCacheDir.resolve(indexEntry != null ? indexEntry.dir() : source.name().replaceAll("[^a-zA-Z0-9]", "_") +  "-" + UUID.randomUUID());
-            final Path indexFile = sourceCacheDir.resolve("index.csv");
-
-            final WebcamCacheDir webcamCacheDir = new WebcamCacheDir(source.name(), sourceCacheDir);
-            final List<WebcamImage> images = new ArrayList<>();
-            webcams.put(source.name(), webcamCacheDir);
-            webcamImages.put(webcamCacheDir, images);
+            final Path indexFile = sourceCacheDir.resolve(IMAGES_INDEX);
+            final Path removedFile = sourceCacheDir.resolve(REMOVED_INDEX);
 
             // read or create index file
+            List<WebcamImage> images;
             if (indexEntry != null) {
-                final String[] rawImages = fileReader.readFileUtf8(indexFile).split("\n");
-                for (int i = 1; i < rawImages.length; i++) {
-                    final String[] parts = rawImages[i].split(",");
-                    images.add(new WebcamImage(parts[2], Instant.parse(parts[1]), sourceCacheDir.resolve(parts[0])));
+                images = readImageIndex(indexFile);
+                // remove previously deleted images
+                final List<WebcamImage> removedImages = readImageIndex(removedFile);
+                if (!removedImages.isEmpty()) {
+                    images.removeAll(removedImages);
+                    writeImageIndex(indexFile, images);
+                    fileWriter.writeLine(removedFile, CACHE_CSV_HEADER);
                 }
             } else {
+                images = new ArrayList<>();
                 fileWriter.writeLine(indexFile, CACHE_CSV_HEADER);
+                fileWriter.writeLine(removedFile, CACHE_CSV_HEADER);
             }
+
+            final WebcamCacheDir webcamCacheDir = new WebcamCacheDir(source.name(), sourceCacheDir);
+            webcams.put(source.name(), webcamCacheDir);
+            webcamImages.put(webcamCacheDir, images);
         }
 
-        // create new index file
+        // create new main index file
 
         final List<WebcamCacheIndex.WebcamIndexEntry> indexEntries = webcams.values().stream()
                 .map(wcd-> new WebcamCacheIndex.WebcamIndexEntry(
@@ -115,16 +126,37 @@ public class WebcamRepository {
         try {
             fileWriter.write(jsonIndex, mapper.writeValueAsString(webcamCacheIndex));
         } catch (Exception ex) {
-            Log.error("Error writing index.", ex);
+            Log.error("Error writing main index.", ex);
         }
     }
 
-    public List<WebcamImage> getImages(String webcamName) {
+    public synchronized List<WebcamImage> getImages(String webcamName) {
         final WebcamCacheDir webcam = webcams.get(webcamName);
         if (webcam == null) {
-            return null;
+            return List.of();
         }
-        return webcamImages.get(webcam);
+        return new ArrayList<>(webcamImages.get(webcam)); // TODO: optimize maybe
+    }
+
+    public synchronized boolean removeImage(String webcamName, WebcamImage webcamImage) {
+        final WebcamCacheDir webcam = webcams.get(webcamName);
+
+        if (webcam == null) {
+            return false;
+        }
+
+        if (!appendToImageIndex(webcam.dir().resolve(REMOVED_INDEX), webcamImage)) {
+            return false;
+        }
+
+        webcamImages.get(webcam).remove(webcamImage);
+
+        try {
+            return Files.deleteIfExists(webcamImage.path());
+        } catch (IOException ex) {
+            Log.error("Error removing image " + webcamImage.path(), ex);
+            return false;
+        }
     }
 
     /**
@@ -142,7 +174,7 @@ public class WebcamRepository {
             return null;
         }
 
-        final List<WebcamImage> previousImages = getImages(webcamName);
+        final List<WebcamImage> previousImages = webcamImages.get(webcam);
         if (previousImages != null && !previousImages.isEmpty()) {
             final WebcamImage lastImage = previousImages.getLast();
             if (lastImage.hash().equals(hash)) {
@@ -157,11 +189,46 @@ public class WebcamRepository {
 
         final WebcamImage image = new WebcamImage(hash, timestamp, filePath);
         webcamImages.get(webcam).add(image);
-        appendToIndex(webcam.dir(), image);
+        appendToImageIndex(webcam.dir().resolve(IMAGES_INDEX), image);
         return image;
     }
 
-    private synchronized void appendToIndex(Path sourceCacheDir, WebcamImage image) {
-        fileWriter.appendLine(sourceCacheDir.resolve("index.csv"), image.path().getFileName() + "," + image.timestamp() + "," + image.hash());
+    private synchronized boolean appendToImageIndex(Path indexFile, WebcamImage image) {
+        return fileWriter.appendLine(indexFile, toString(image));
+    }
+
+    private synchronized void writeImageIndex(Path indexFile, List<WebcamImage> images) {
+        final StringBuilder sb = new StringBuilder();
+        sb.append(CACHE_CSV_HEADER).append("\n");
+        for (WebcamImage image : images) {
+            sb.append(toString(image)).append("\n");
+        }
+        fileWriter.write(indexFile, sb.toString());
+    }
+
+    private synchronized List<WebcamImage> readImageIndex(Path indexFile) {
+        final Path dir = indexFile.getParent();
+
+        final String file = fileReader.readFileUtf8(indexFile);
+
+        if (file == null) {
+            return List.of();
+        }
+
+        final String[] rawImages = file.split("\n");
+
+        final List<WebcamImage> images = new ArrayList<>();
+
+        // start at first record, ignore header
+        for (int i = 1; i < rawImages.length; i++) {
+            final String[] parts = rawImages[i].split(",");
+            images.add(new WebcamImage(parts[2], Instant.parse(parts[1]), dir.resolve(parts[0])));
+        }
+
+        return images;
+    }
+
+    private String toString(WebcamImage image) {
+        return image.path().getFileName() + "," + image.timestamp() + "," + image.hash();
     }
 }

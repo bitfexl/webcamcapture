@@ -54,7 +54,7 @@ public class WebcamService {
 
     public WebcamImage getImage(String webcamName, Instant nearTimestamp) {
         final List<WebcamImage> images = webcamRepository.getImages(webcamName);
-        if (images == null || images.isEmpty()) {
+        if (images.isEmpty()) {
             return null;
         }
         return findClosest(images, nearTimestamp);
@@ -64,6 +64,14 @@ public class WebcamService {
         final byte[] bytes = httpClient.getBytes(webcamSource.url(), Map.of());
         final String hash = hashing.md5(bytes);
         webcamRepository.writeImage(webcamSource.name(), getExtension(webcamSource.url()), Instant.now(), hash, bytes);
+
+        // remove older captures if max captures has been reached
+        if (webcamSource.maxCaptures() != null) {
+            final List<WebcamImage> images = webcamRepository.getImages(webcamSource.name());
+            for (int i = 0; images.size() - i > webcamSource.maxCaptures(); i++) {
+                webcamRepository.removeImage(webcamSource.name(), images.get(i));
+            }
+        }
     }
 
     private String getExtension(String url) {

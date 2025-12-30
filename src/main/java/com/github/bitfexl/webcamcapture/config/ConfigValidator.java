@@ -56,6 +56,11 @@ public class ConfigValidator {
             return false;
         }
 
+        // check max captures
+        if (source.maxCaptures() != null && source.maxCaptures() < 1) {
+            return false;
+        }
+
         return true;
     }
 }

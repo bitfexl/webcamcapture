@@ -53,7 +53,7 @@ public class JobSchedulerService {
         final ScheduledJob job = new ScheduledJob();
         job.runnable = jobRunnable;
         job.intervalMs = intervalMs;
-        job.nextExecution = Instant.now();
+        job.nextExecution = Instant.ofEpochSecond(0); // execute on next check
         jobs.add(job);
     }
 
