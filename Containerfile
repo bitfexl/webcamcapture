@@ -13,5 +13,5 @@ RUN ./mvnw package
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-COPY --from=build /build/target/quarkus-app .
+COPY --from=build /build/target/quarkus-app ./quarkus-app
 CMD ["java", "-jar", "./quarkus-app/quarkus-run.jar"]
