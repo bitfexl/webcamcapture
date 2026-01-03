@@ -70,6 +70,15 @@ public class WebcamService {
         return findClosest(images, nearTimestamp);
     }
 
+    public List<WebcamImage> getImages(String webcamName, Instant nearTimestamp, int count) {
+        final List<WebcamImage> images = webcamRepository.getImages(webcamName);
+        if (images.isEmpty()) {
+            return List.of();
+        }
+        final int toIndex = findClosestIndex(images, nearTimestamp) + 1;
+        return images.subList(Math.max(0, toIndex - count), toIndex);
+    }
+
     /**
      * Update the webcam (save the image). Respects max captures and deletes images if necessary.
      * @param webcamSource The source to update.
@@ -127,6 +136,10 @@ public class WebcamService {
     }
 
     private WebcamImage findClosest(List<WebcamImage> images, Instant timestamp) {
+        return images.get(findClosestIndex(images, timestamp));
+    }
+
+    private int findClosestIndex(List<WebcamImage> images, Instant timestamp) {
         int left = 0;
         int right = images.size() - 1;
 
@@ -135,7 +148,7 @@ public class WebcamService {
             final Instant midValue = images.get(mid).timestamp();
 
             if (midValue.equals(timestamp)) {
-                return images.get(mid);
+                return mid;
             } else if (midValue.isBefore(timestamp)) {
                 left = mid + 1;
             } else {
@@ -144,20 +157,20 @@ public class WebcamService {
         }
 
         if (right < 0 || right >= images.size()) {
-            return images.get(left);
+            return left;
         }
         // left never < 0 because while left <= right and previous if right < 0 returns
         if (/*left < 0 ||*/ left >= images.size()) {
-            return images.get(right);
+            return right;
         }
 
         final Instant a = images.get(left).timestamp();
         final Instant b = images.get(right).timestamp();
         final int result = Duration.between(a, timestamp).compareTo(Duration.between(b, timestamp));
         if (result <= 0) {
-            return images.get(left);
+            return left;
         } else {
-            return images.get(right);
+            return right;
         }
     }
 }
