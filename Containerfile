@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21-jdk AS build
+FROM docker.io/library/eclipse-temurin:21-jdk AS build
 WORKDIR /build
 
 COPY --chmod=777 mvnw .
@@ -11,7 +11,7 @@ COPY . .
 COPY --chmod=777 mvnw .
 RUN ./mvnw package
 
-FROM eclipse-temurin:21-jre
+FROM docker.io/library/eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=build /build/target/quarkus-app ./quarkus-app
 CMD ["java", "-jar", "./quarkus-app/quarkus-run.jar"]

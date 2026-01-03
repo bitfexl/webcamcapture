@@ -1,0 +1,7 @@
+dnf install git podman podlet -y
+git clone https://github.com/bitfexl/webcamcapture.git
+cd ./webcamcapture/
+podman build -t webcamcapture .
+podlet -f -a -i podman run -p 8080:8080 -v ./webcamcaptureconfig.json:/app/webcamcaptureconfig.json -v webcam-save:/app/webcam-save/ webcamcapture
+podman quadlet install -r --reload-systemd webcamcapture.container
+systemctl start webcamcapture.service

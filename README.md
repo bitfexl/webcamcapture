@@ -11,7 +11,7 @@ podman build -t webcamcapture .
 **Run**
 
 ```sh
-podman run -it --rm -p8080:8080 -v ./webcamcaptureconfig.json:/app/webcamcaptureconfig.json webcamcapture
+podman run -it --rm -p 8080:8080 -v ./webcamcaptureconfig.json:/app/webcamcaptureconfig.json webcamcapture
 ```
 
 **Config (webcamcapture.json)**
@@ -40,6 +40,18 @@ podman run -it --rm -p8080:8080 -v ./webcamcaptureconfig.json:/app/webcamcapture
     // ... other webcams.
   ]
 }
+```
+
+**Build and install (tested on fedora)**
+
+```sh
+dnf install git podman podlet -y
+git clone https://github.com/bitfexl/webcamcapture.git
+cd ./webcamcapture/
+podman build -t webcamcapture .
+podlet -f -a -i podman run -p 8080:8080 -v ./webcamcaptureconfig.json:/app/webcamcaptureconfig.json -v webcam-save:/app/webcam-save/ webcamcapture
+podman quadlet install -r --reload-systemd webcamcapture.container
+systemctl start webcamcapture.service
 ```
 
 **Rest Endpoints**
