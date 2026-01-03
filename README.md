@@ -44,6 +44,15 @@ podman run -it --rm -p 8080:8080 -v ./webcamcaptureconfig.json:/app/webcamcaptur
 
 **Build and install (tested on fedora)**
 
+Install command:
+
+```sh
+curl https://raw.githubusercontent.com/bitfexl/webcamcapture/refs/heads/master/installscript | sh
+```
+Afterward create `webcamcaptureconfig.json` and restart the service (`webcamcapture.service`).
+
+Full script:
+
 ```sh
 dnf install git podman podlet -y
 git clone https://github.com/bitfexl/webcamcapture.git
