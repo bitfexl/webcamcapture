@@ -67,13 +67,15 @@ systemctl start webcamcapture.service
 
 The dev server also includes a swagger ui at: http://localhost:8080/q/swagger-ui/
 
-| Endpoint | Description                                                                                     |
-|-|-------------------------------------------------------------------------------------------------|
-| / | The server serves a simple html site as the index, which allows viewing all webcams.            |
-|  /index | Json index of available webcams.                                                                |
-| /webcam/{name}/latest | Get metadata and url for the latest image of the webcam (webcam name from /index, config file). |
-| /webcam/{name}/{timestamp} | Get metadata and url for the image closest to the timestamp (iso 8601 timestamp). |
-| /image/{partialPath} | Will be used by the url returned form the /webcam endpoints to get the image file. |
+| Endpoint                           | Description                                                                                                           |
+|------------------------------------|-----------------------------------------------------------------------------------------------------------------------|
+| /                                  | The server serves a simple html site as the index, which allows viewing all webcams.                                  |
+| /index                             | Json index of available webcams.                                                                                      |
+| /webcam/{name}/latest              | Get metadata and url for the latest image of the webcam (webcam name from /index, config file).                       |
+| /webcam/{name}/{timestamp}         | Get metadata and url for the image closest to the timestamp (iso 8601 timestamp).                                     |
+| /webcam/{name}/latest/{count}      | Get metadata and url for the latest images of the webcam (count > 0, may return fewer images then count).             |
+| /webcam/{name}/{timestamp}/{count} | Get metadata and url for the images closest/before the timestamp (iso 8601 timestamp, count > 0, same as for latest). |
+| /image/{partialPath}               | Will be used by the url returned form the /webcam endpoints to get the image file.                                    |
 
 ---
 
