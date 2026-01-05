@@ -1,5 +1,6 @@
 package com.github.bitfexl.webcamcapture.resources;
 
+import com.github.bitfexl.webcamcapture.services.URLService;
 import com.github.bitfexl.webcamcapture.services.WebcamService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.ClientErrorException;
@@ -18,6 +19,9 @@ public class WebcamResource {
 
     @Inject
     WebcamService service;
+
+    @Inject
+    URLService urlService;
 
     @GET
     @Path("/{name}/latest")
@@ -56,6 +60,6 @@ public class WebcamResource {
     }
 
     private WebcamImage convertWebcamImage(com.github.bitfexl.webcamcapture.respsitories.webcamrepository.WebcamImage image, URI baseUri) {
-        return new WebcamImage(image.timestamp(), baseUri.resolve("./image/" + service.getPartialPath(image)).toString());
+        return new WebcamImage(image.timestamp(), urlService.resolve("./image/" + service.getPartialPath(image), baseUri).toString());
     }
 }

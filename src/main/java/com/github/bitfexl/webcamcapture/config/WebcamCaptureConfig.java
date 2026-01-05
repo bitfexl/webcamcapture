@@ -4,6 +4,7 @@ import java.util.List;
 
 public record WebcamCaptureConfig(
         String cacheDir,
-        List<WebcamSource> webcams
+        List<WebcamSource> webcams,
+        String baseURL
 ) {
 }
