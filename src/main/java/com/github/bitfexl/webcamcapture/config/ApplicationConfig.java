@@ -56,7 +56,8 @@ public class ApplicationConfig {
 
         try {
             return new ObjectMapper().readValue(file, WebcamCaptureConfig.class);
-        } catch (JsonProcessingException e) {
+        } catch (JsonProcessingException ex) {
+            Log.error("Invalid json config.", ex);
             return null;
         }
     }
