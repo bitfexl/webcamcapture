@@ -18,6 +18,8 @@ podman run -it --rm -p 8080:8080 -v ./webcamcaptureconfig.json:/app/webcamcaptur
 
 ```
 {
+  // Optional base url for responses, usefull if behind reverse proxy.
+  "baseURL": "https://example.com/webcamapi/",
   // The cache dir for saved images inside the container, will be relative to /app.
   "cacheDir": "./webcam-save",
   "webcams": [
